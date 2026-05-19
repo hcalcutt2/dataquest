@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚔️ Data Quest — The Legend of Analyticus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════
+   PALETTE — PINK PHOSPHOR CRT
+   Semantic: BLUE=positive, ORANGE=negative
+   Colorblind-safe (deuteranopia / protanopia / tritanopia)
+   ══════════════════════════════════ */
+:root {
+  --bg:     #050105;
+  --panel:  #0e020c;
+  --border: #660055;
+  --brite:  #aa0080;
+  --pink:   #dd55aa;
+  --dim:    #660044;
+  --bright: #ff99cc;
+  --white:  #ffe0f5;
+  --hot:    #ff44cc;   /* titles / accents — replaces yellow */
+
+  /* Semantic — colorblind-safe, unchanged */
+  --pos:    #4db8ff;   /* positive  → blue   */
+  --neg:    #ff6630;   /* negative  → orange */
+  --warn:   #ffcc00;   /* caution   → yellow (contrasts with pink bg) */
+  --wrong:  #ff6630;
+  --right:  #4db8ff;
+  --purple: #bb88ff;   /* significance */
+
+  --font: 'Press Start 2P', monospace;
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-behavior:smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--pink);
+  font-family: var(--font);
+  font-size: 12px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* CRT scanlines */
+body::after {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:9998;
+  background: repeating-linear-gradient(to bottom,transparent 0px,transparent 2px,rgba(0,0,0,0.07) 2px,rgba(0,0,0,0.07) 3px);
+}
+/* CRT vignette */
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:9997;
+  background: radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.6) 100%);
+}
+
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:var(--border); }
+
+/* ── SCREENS ── */
+.screen { display:none; min-height:100vh; }
+.screen.active { display:flex; flex-direction:column; }
+
+/* ── PIXEL BOX ── */
+.pbox {
+  position:relative;
+  border:2px solid var(--border);
+  background:var(--panel);
+  box-shadow:0 0 10px rgba(180,0,120,0.1),inset 0 0 8px rgba(0,0,0,0.5);
+}
+.pbox.p { border-color:#880066; box-shadow:0 0 14px rgba(255,68,204,0.35); }  /* pink */
+.pbox.b { border-color:#1a5588; box-shadow:0 0 14px rgba(77,184,255,0.4); }   /* blue */
+.pbox.o { border-color:#994400; box-shadow:0 0 14px rgba(255,102,48,0.4); }   /* orange */
+
+/* Corner dots */
+.pbox::before,.pbox::after,.pbox>.c1,.pbox>.c2 {
+  content:''; position:absolute; width:7px; height:7px;
+  pointer-events:none; z-index:2;
+}
+.pbox::before  { top:-2px;    left:-2px;  background:var(--border); }
+.pbox::after   { top:-2px;    right:-2px; background:var(--border); }
+.pbox>.c1      { bottom:-2px; left:-2px;  background:var(--border); }
+.pbox>.c2      { bottom:-2px; right:-2px; background:var(--border); }
+.pbox.p::before,.pbox.p::after,.pbox.p>.c1,.pbox.p>.c2 { background:var(--hot); }
+.pbox.b::before,.pbox.b::after,.pbox.b>.c1,.pbox.b>.c2 { background:var(--right); }
+.pbox.o::before,.pbox.o::after,.pbox.o>.c1,.pbox.o>.c2 { background:var(--wrong); }
+
+/* ── BUTTONS ── */
+.btn {
+  display:block; width:100%;
+  font-family:var(--font); font-size:8px; line-height:1.8;
+  padding:10px 14px 10px 26px;
+  border:2px solid var(--border); background:var(--panel); color:var(--pink);
+  cursor:pointer; text-align:left; position:relative;
+  transition:background .1s,border-color .1s,transform .08s;
+  letter-spacing:.5px;
+}
+.btn::before { content:'  '; position:absolute; left:10px; top:50%; transform:translateY(-50%); }
+.btn:hover   { transform:translateX(3px); }
+.btn:hover::before { content:'▶'; }
+.btn:active  { transform:translateX(1px) scale(.99); }
+.btn:disabled { opacity:.4; cursor:not-allowed; transform:none; pointer-events:none; }
+
+.btn-d { color:var(--pink);  border-color:var(--border); }
+.btn-d:hover { background:#1a0015; border-color:var(--brite); color:var(--bright); }
+
+.btn-o { color:var(--wrong); border-color:#994400; background:#100600; }   /* orange = wrong */
+.btn-o:hover { background:#1e0e00; border-color:var(--wrong); }
+
+.btn-b { color:var(--right); border-color:#1a4466; background:#020810; }   /* blue = correct */
+.btn-b:hover { background:#04101e; border-color:var(--right); }
+
+.btn-p { color:var(--hot);   border-color:#880066; background:#0e0010; }   /* pink = request/action */
+.btn-p:hover { background:#1a0020; border-color:var(--hot); }
+
+.btn-big { font-size:9px; padding:14px 20px; text-align:center; letter-spacing:1px; }
+.btn-big::before { display:none; }
+.btn-big:hover { transform:none; }
+
+/* ── HUD ── */
+#hud {
+  display:flex; align-items:center; gap:14px; padding:8px 14px;
+  border-bottom:2px solid var(--border); background:var(--panel);
+  position:sticky; top:0; z-index:100;
+  box-shadow:0 2px 12px rgba(0,0,0,.7);
+}
+.xp-wrap { flex:1; min-width:0; }
+.xp-labels { display:flex; justify-content:space-between; font-size:6px; color:var(--dim); margin-bottom:4px; }
+.xp-labels span:last-child { color:var(--hot); }
+.xp-track { height:8px; background:#1a0015; border:1px solid var(--border); overflow:hidden; }
+.xp-fill  { height:100%; background:linear-gradient(90deg,#aa0077,var(--hot)); transition:width .7s cubic-bezier(.2,.8,.3,1); }
+.lives { display:flex; gap:5px; flex-shrink:0; }
+.heart { font-size:16px; color:var(--right); transition:filter .3s,color .3s; }
+.heart.dead { color:var(--border); filter:brightness(.4); }
+#ch-indicator { font-size:6px; color:var(--dim); white-space:nowrap; flex-shrink:0; }
+
+/* ── CONTENT ── */
+#game-content { max-width:680px; margin:0 auto; padding:14px 14px 30px; width:100%; flex:1; }
+
+/* ── CHAPTER HEADER ── */
+.ch-header { text-align:center; padding:10px 0 14px; border-bottom:1px solid var(--border); margin-bottom:14px; }
+.ch-num  { font-size:6px; color:var(--dim); margin-bottom:5px; letter-spacing:2px; }
+.ch-name { font-size:11px; color:var(--hot); line-height:1.6; animation:titleGlow 3s ease-in-out infinite; }
+.ch-diff { margin-top:7px; }
+.diff-badge { display:inline-block; font-size:6px; padding:3px 7px; border:1px solid; letter-spacing:1px; }
+.d-app { color:var(--pink); border-color:var(--pink); }
+.d-adp { color:var(--warn); border-color:var(--warn); }
+.d-mst { color:var(--wrong); border-color:var(--wrong); }
+
+/* ── DIALOG ── */
+.dialog-wrap { padding:14px; margin-bottom:14px; cursor:pointer; }
+.dialog-inner { display:flex; gap:14px; align-items:flex-start; }
+.portrait-frame {
+  flex-shrink:0; width:64px; height:64px;
+  border:2px solid var(--border); background:#0e0010;
+  display:flex; align-items:center; justify-content:center;
+  font-size:34px; box-shadow:inset 0 0 10px rgba(0,0,0,.7);
+}
+.dialog-body { flex:1; min-width:0; }
+.speaker     { font-size:6px; color:var(--hot); margin-bottom:8px; letter-spacing:1px; }
+.dialog-text { font-size:8px; color:var(--bright); line-height:2.2; min-height:40px; }
+.dialog-hint { text-align:right; margin-top:10px; font-size:6px; color:var(--dim); animation:blink 1s step-end infinite; }
+.dialog-progress { text-align:center; font-size:6px; color:var(--dim); margin-top:6px; }
+
+/* ── DATA TABLE ── */
+.table-wrap { margin-bottom:14px; overflow:hidden; }
+.table-wrap table { width:100%; border-collapse:collapse; }
+.table-wrap th {
+  font-family:var(--font); font-size:6px; color:var(--hot); background:#220020;
+  padding:8px 10px; font-weight:normal; letter-spacing:.5px;
+  border-bottom:2px solid var(--border);
+}
+.table-wrap th:first-child { text-align:left; }
+.table-wrap th:not(:first-child) { text-align:center; }
+.table-wrap td {
+  font-family:var(--font); font-size:7px; padding:9px 10px;
+  border-bottom:1px solid #3a0030;
+  color:var(--bright);       /* was --pink (#dd55aa), now --bright (#ff99cc) — much more legible */
+  background:#160010;        /* base row background — slightly lighter than panel */
+}
+.table-wrap td:first-child { text-align:left; color:var(--white); font-size:6.5px; }
+.table-wrap td:not(:first-child) { text-align:center; }
+.table-wrap tr:nth-child(even) td { background:#0a0008; }  /* clear alternating contrast */
+.table-wrap tr.new-row { animation:rowIn .35s ease; }
+
+/* Semantic: colour + symbol */
+.up::before   { content:'▲ '; font-size:6px; }  .up   { color:var(--pos) !important; }
+.dn::before   { content:'▼ '; font-size:6px; }  .dn   { color:var(--neg) !important; font-weight:bold; }
+.warn::before { content:'! '; font-size:6px; }  .warn { color:var(--warn) !important; }
+.sig::before  { content:'✓ '; font-size:6px; }  .sig  { color:var(--purple) !important; }
+
+.table-legend {
+  display:flex; flex-wrap:wrap; gap:8px 16px;
+  padding:6px 10px; border-top:1px solid var(--border); background:#0e0010;
+}
+.tl-item { display:flex; align-items:center; gap:5px; font-size:5px; }
+.tl-dot  { width:8px; height:8px; border-radius:1px; flex-shrink:0; }
+
+/* ── QUESTION PANEL ── */
+.q-panel    { padding:14px; margin-bottom:12px; }
+.q-wizard   { display:flex; gap:12px; align-items:flex-start; margin-bottom:14px; }
+.q-wiz-icon { font-size:26px; flex-shrink:0; margin-top:2px; }
+.q-speaker  { font-size:6px; color:var(--hot); margin-bottom:6px; }
+.q-text     { font-size:8px; color:var(--bright); line-height:2.2; }
+.ans-grid   { display:flex; flex-direction:column; gap:8px; }
+
+/* ── DATA REQUEST ── */
+.dr-panel { padding:14px; margin-bottom:12px; }
+.dr-title { font-size:7px; color:var(--hot); margin-bottom:12px; }
+.dr-btns  { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+.dr-sep   { border:none; border-top:1px solid var(--border); margin:10px 0; }
+
+/* ── WRONG ── */
+.wrong-panel { padding:16px; margin-bottom:14px; }
+.wrong-title { font-size:12px; color:var(--wrong); text-align:center; margin-bottom:14px; letter-spacing:2px; }
+.wrong-body  { display:flex; gap:12px; margin-bottom:16px; }
+.wrong-icon  { font-size:28px; flex-shrink:0; }
+.wrong-msg   { font-size:7px; color:#ffb077; line-height:2.4; }
+
+/* ── SUCCESS ── */
+.success-panel { padding:16px; margin-bottom:14px; }
+.success-title {
+  font-size:12px; color:var(--right); text-align:center; margin-bottom:14px;
+  text-shadow:0 0 14px var(--right); animation:bluePulse 1.5s ease-in-out infinite;
+}
+.success-body { display:flex; gap:12px; margin-bottom:14px; }
+.success-icon { font-size:28px; flex-shrink:0; }
+.success-msg  { font-size:7px; color:var(--bright); line-height:2.4; }
+.xp-badge     { font-size:9px; color:var(--hot); margin-bottom:14px; }
+
+/* ── LESSON ── */
+.lesson-panel { padding:16px; margin-bottom:14px; }
+.lesson-title { font-size:7px; color:var(--hot); margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+.lesson-item  { display:flex; gap:10px; margin-bottom:13px; }
+.lesson-dot   { color:var(--hot); flex-shrink:0; font-size:8px; margin-top:1px; }
+.lesson-txt   { font-size:7px; color:var(--bright); line-height:2.3; }
+
+/* ── TITLE SCREEN ── */
+#title-screen { align-items:center; justify-content:center; padding:24px 16px; }
+.title-center { max-width:560px; width:100%; display:flex; flex-direction:column; align-items:center; gap:16px; text-align:center; }
+.title-hero   { font-size:52px; animation:float 3s ease-in-out infinite; display:block; margin-bottom:6px; }
+.title-main   { font-size:22px; color:var(--hot); line-height:1.5; animation:titleGlow 2.5s ease-in-out infinite; }
+.title-sub    { font-size:7px; color:var(--dim); letter-spacing:3px; margin-top:4px; }
+.title-intro  { text-align:left; padding:16px; width:100%; }
+.title-intro p { font-size:7px; color:var(--bright); line-height:2.4; margin-bottom:10px; }
+.title-intro p:last-child { margin-bottom:0; color:var(--hot); }
+.quest-list   { text-align:left; padding:14px; width:100%; }
+.quest-item   { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--border); font-size:6px; }
+.quest-item:last-child { border-bottom:none; }
+.qi-icon  { font-size:18px; flex-shrink:0; width:28px; text-align:center; }
+.qi-ch    { color:var(--dim); flex-shrink:0; }
+.qi-name  { color:var(--white); flex:1; }
+.title-footer { font-size:6px; color:var(--dim); letter-spacing:1px; }
+
+/* ── VICTORY ── */
+#victory-screen { align-items:center; justify-content:center; padding:24px 16px; }
+.victory-center { max-width:540px; width:100%; display:flex; flex-direction:column; align-items:center; gap:16px; text-align:center; }
+.victory-trophy { font-size:56px; animation:float 2s ease-in-out infinite; }
+.victory-title  { font-size:14px; color:var(--hot); line-height:1.8; animation:titleGlow 2s ease-in-out infinite; }
+.victory-xp     { font-size:9px; color:var(--hot); }
+.skills-list    { text-align:left; width:100%; padding:14px; }
+.skill-item     { display:flex; gap:10px; margin-bottom:10px; font-size:7px; line-height:2; }
+.skill-check    { color:var(--right); flex-shrink:0; }
+
+/* ── GAME OVER ── */
+#gameover-screen { align-items:center; justify-content:center; padding:24px 16px; background:#080008; }
+.go-center { max-width:500px; width:100%; display:flex; flex-direction:column; align-items:center; gap:16px; text-align:center; }
+.go-skull  { font-size:56px; animation:deathPulse 1.5s ease-in-out infinite; }
+.go-title  { font-size:16px; color:var(--wrong); line-height:1.8; letter-spacing:2px; }
+.go-msg    { text-align:left; width:100%; padding:14px; }
+.go-msg p  { font-size:7px; color:#ffb077; line-height:2.4; }
+
+/* ── ANIMATIONS ── */
+@keyframes blink       { 0%,100%{opacity:1}  50%{opacity:0} }
+@keyframes float       { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+@keyframes shake       { 0%,100%{transform:translateX(0)} 15%{transform:translateX(-9px)} 30%{transform:translateX(9px)} 45%{transform:translateX(-6px)} 60%{transform:translateX(6px)} 75%{transform:translateX(-3px)} }
+@keyframes fadeSlideIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+@keyframes rowIn       { from{opacity:0;transform:translateX(-14px) scale(.97)} to{opacity:1;transform:none} }
+@keyframes titleGlow   { 0%,100%{text-shadow:0 0 14px rgba(255,68,204,.7),0 0 28px rgba(180,0,140,.35)} 50%{text-shadow:0 0 28px rgba(255,68,204,1),0 0 56px rgba(220,0,160,.6)} }
+@keyframes bluePulse   { 0%,100%{text-shadow:0 0 10px var(--right)} 50%{text-shadow:0 0 24px var(--right),0 0 48px rgba(77,184,255,.5)} }
+@keyframes deathPulse  { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.7;transform:scale(.95)} }
+
+.fade-in { animation:fadeSlideIn .4s ease; }
+.shake   { animation:shake .5s ease; }
+
+@media (max-width:520px) {
+  body { font-size:10px; }
+  .title-main { font-size:16px; }
+  .ch-name { font-size:9px; }
+  .btn { font-size:7px; padding:9px 10px 9px 22px; }
+  .portrait-frame { width:52px; height:52px; font-size:28px; }
+}
+</style>
+</head>
+<body>
+
+<!-- TITLE -->
+<div id="title-screen" class="screen active">
+  <div class="title-center">
+    <div>
+      <span class="title-hero">🧙</span>
+      <div class="title-main">DATA QUEST</div>
+      <div class="title-sub">THE LEGEND OF ANALYTICUS</div>
+    </div>
+    <div class="pbox title-intro" style="width:100%;"><div class="c1"></div><div class="c2"></div>
+      <p>The realm of E-commerce lies cursed! Dark Patterns of Bad Analysis corrupt decisions across the kingdom.</p>
+      <p>Defeat 7 Data Demons to restore truth and wisdom to the land!</p>
+    </div>
+    <div class="pbox quest-list" style="width:100%;"><div class="c1"></div><div class="c2"></div>
+      <div id="title-quest-list"></div>
+    </div>
+    <button class="btn btn-p btn-big" id="start-btn" style="width:100%;border:2px solid #880066;background:#0e0010;">
+      &#9658;&nbsp;&nbsp;PRESS START
+    </button>
+    <div class="title-footer">A GAME ABOUT CRO &amp; DATA ANALYSIS BEST PRACTICES</div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="game-screen" class="screen">
+  <div id="hud">
+    <div class="xp-wrap">
+      <div class="xp-labels"><span>XP</span><span id="xp-label">0 / 750</span></div>
+      <div class="xp-track"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
+    </div>
+    <div id="lives-row" class="lives"></div>
+    <div id="ch-indicator"></div>
+  </div>
+  <div id="game-content"></div>
+</div>
+
+<!-- VICTORY -->
+<div id="victory-screen" class="screen">
+  <div class="victory-center">
+    <div class="victory-trophy">&#127942;</div>
+    <div class="victory-title">QUEST<br>COMPLETE!</div>
+    <div class="pbox" style="width:100%;padding:14px;"><div class="c1"></div><div class="c2"></div>
+      <div style="font-size:7px;color:var(--bright);line-height:2.4;margin-bottom:10px;">You have mastered the ancient arts of data wisdom. The realm is saved.</div>
+      <div style="font-size:7px;color:var(--hot);">The Council bestows upon you the title of: DATA CHAMPION</div>
+    </div>
+    <div class="pbox skills-list"><div class="c1"></div><div class="c2"></div>
+      <div style="font-size:7px;color:var(--hot);margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px;">SKILLS MASTERED:</div>
+      <div class="skill-item"><span class="skill-check">&#10003;</span><span style="color:var(--bright);">Identifying vanity metrics &amp; the Revenue Mirage</span></div>
+      <div class="skill-item"><span class="skill-check">&#10003;</span><span style="color:var(--bright);">Segmenting results before shipping decisions</span></div>
+      <div class="skill-item"><span class="skill-check">&#10003;</span><span style="color:var(--bright);">Detecting corrupted exports &amp; mixed data sources</span></div>
+      <div class="skill-item"><span class="skill-check">&#10003;</span><span style="color:var(--bright);">Rejecting false winners — primary metric always wins</span></div>
+      <div class="skill-item"><span class="skill-check">&#10003;</span><span style="color:var(--bright);">Choosing the right chart for the right data type</span></div>
+      <div class="skill-item"><span class="skill-check">&#10003;</span><span style="color:var(--bright);">Understanding error propagation through rounding</span></div>
+      <div class="skill-item"><span class="skill-check">&#10003;</span><span style="color:var(--bright);">Questioning results that look too good to be true</span></div>
+    </div>
+    <div class="victory-xp">TOTAL XP: <span id="final-xp-val">0</span></div>
+    <button class="btn btn-p btn-big" id="play-again-btn" style="width:100%;border:2px solid #880066;background:#0e0010;">
+      &#8617;&nbsp;&nbsp;PLAY AGAIN
+    </button>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div id="gameover-screen" class="screen">
+  <div class="go-center">
+    <div class="go-skull">&#128128;</div>
+    <div class="go-title">GAME<br>OVER</div>
+    <div class="pbox o go-msg" style="width:100%;"><div class="c1"></div><div class="c2"></div>
+      <p>The Data Demons have claimed another victim. The realm falls into darkness.</p>
+    </div>
+    <button class="btn btn-o btn-big" id="retry-gameover-btn" style="width:100%;border:2px solid #994400;background:#100600;">
+      &#8617;&nbsp;&nbsp;TRY AGAIN
+    </button>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ── CHALLENGES ── */
+var CHALLENGES = [
+  {
+    id: 0,
+    chapter: 'CHAPTER I',
+    title: 'THE MERCHANT OF KETH',
+    difficulty: 'APPRENTICE', diffClass: 'd-app', enemy: '💰', xp: 150,
+    dialogs: [
+      "Halt, traveller! I am ANALYTICUS THE WISE — guardian of data integrity in this realm.",
+      "The kingdom of E-commerce is besieged by the most treacherous foe: misleading metrics!",
+      "A merchant has run an A/B test. The CEO just saw the dashboard. They are... extremely excited.",
+      "Below is the data scroll. The CEO screams 'SHIP EXPERIENCE B BY SUNDOWN!' Study it carefully."
+    ],
+    headers: ['Metric', 'Exp. A (Control)', 'Exp. B (Variant)', 'Uplift'],
+    initRows: [
+      { c: ['Revenue', '£10,000', '£60,000', '+500%'], k: ['','','','up'] }
+    ],
+    revealable: [
+      { key:'orders', label:'Number of Orders',
+        row: { c:['Orders', '2', '3', '+50%'], k:['','','','warn'] } },
+      { key:'aov',    label:'Average Order Value',
+        row: { c:['Avg. Order Value', '£5,000', '£20,000', '+300%'], k:['','','','up'] } }
+    ],
+    question: "The CEO needs a decision NOW. Should you ship Experience B?",
+    answers: [
+      { lbl: "YES  Ship it! Revenue is up 500%!", type:'wrong' },
+      { lbl: "NO   I'm not convinced yet",         type:'correct', needsData:true },
+      { lbl: "GIVE ME MORE DATA",                  type:'request' }
+    ],
+    wrongMsg:   "Experience B has only 3 orders vs 2 in control. That revenue gap is just 1 extra order at a higher value. With only 2 vs 3 orders this result is pure noise.",
+    nudgeMsg:   "Your instincts are right — but you need data to make your case. Request the underlying metrics first!",
+    successMsg: "Excellent! You identified what was really driving that revenue figure.",
+    lesson: [
+      "Experience B has only 3 orders vs 2 in control — essentially zero statistical power",
+      "The revenue gap is 1 extra large order at a higher value — not meaningful scale",
+      "A +500% revenue uplift with 2 vs 3 orders is completely meaningless",
+      "Always check: number of orders and average order value — never judge on revenue alone"
+    ]
+  },
+  {
+    id: 1,
+    chapter: 'CHAPTER II',
+    title: 'THE VIZIER\'S NUMBERS',
+    difficulty: 'ADEPT', diffClass: 'd-adp', enemy: '🔮', xp: 250,
+    dialogs: [
+      "One demon felled! But the darkness grows more cunning with every defeat.",
+      "The Vizier presents numbers to the court — and the court believes whatever the Vizier presents.",
+      "A checkout redesign test has concluded. The numbers look excellent. The team is celebrating.",
+      "Before you give the order to ship — take a closer look at the data scroll."
+    ],
+    headers: ['Metric', 'Exp. A (Control)', 'Exp. B (Variant)', 'Uplift'],
+    initRows: [
+      { c:['Traffic',          '5,420', '5,389', 'balanced'],   k:['','','','sig'] },
+      { c:['Conv. Rate (All)', '3.5%',  '4.0%',  '+14%'],       k:['','','','up']  },
+      { c:['p-value',          '—',     '0.02',  'significant'], k:['','','','sig'] }
+    ],
+    revealable: [
+      { key:'mobile',  label:'Mobile conversion rate',
+        row: { c:['Conv. Rate (Mobile)',  '3.8%','2.1%', '-45%'],  k:['','','','dn'] } },
+      { key:'desktop', label:'Desktop conversion rate',
+        row: { c:['Conv. Rate (Desktop)', '3.0%','7.2%', '+140%'], k:['','','','up'] } }
+    ],
+    question: "Balanced traffic, statistically significant. Ship the checkout redesign?",
+    answers: [
+      { lbl: "YES  All the boxes are ticked!",       type:'wrong' },
+      { lbl: "NO   I want to dig deeper first",      type:'correct', needsData:false },
+      { lbl: "INVESTIGATE  Break the data down",     type:'request' }
+    ],
+    wrongMsg:   "You just destroyed the checkout for mobile users (-45% conversion). If mobile is 65% of traffic, you have made things dramatically worse overall. The aggregate numbers hid the disaster.",
+    successMsg: "Excellent! You knew that a single overall figure could be hiding very different stories underneath.",
+    lesson: [
+      "Aggregate +14% hid a catastrophic -45% drop in mobile conversion rate",
+      "Desktop improved (+140%) but desktop is likely your minority traffic source",
+      "If 65% of users are on mobile: the real weighted outcome is deeply negative",
+      "Always segment by: device type, new vs returning, traffic source, and user tier before shipping"
+    ]
+  },
+  {
+    id: 2,
+    chapter: 'CHAPTER III',
+    title: 'THE ARCHIVIST\'S SCROLL',
+    difficulty: 'JOURNEYMAN', diffClass: 'd-adp', enemy: '🗂️', xp: 250,
+    dialogs: [
+      "Two demons felled! Your analytical powers grow formidable.",
+      "But now a subtler evil lurks — not in charts or uplifts, but in the raw data itself.",
+      "Your team has exported records to analyse checkout performance. Traffic, orders, and transactions.",
+      "Before you begin — cast your eye over what is in front of you. Something is off."
+    ],
+    headers: ['Date', 'Sessions', 'Orders', 'Transaction ID'],
+    extraInitHtml:
+      '<div class="pbox table-wrap" style="margin-bottom:14px;">' +
+      '<div class="c1"></div><div class="c2"></div>' +
+      '<table>' +
+      '<thead><tr>' +
+      '<th style="text-align:left;">Metric</th>' +
+      '<th>Value</th>' +
+      '</tr></thead>' +
+      '<tbody>' +
+      '<tr style="background:#160010;"><td>Sessions (traffic)</td><td>50,000</td></tr>' +
+      '<tr style="background:#0a0008;"><td>Orders in this export</td><td class="warn">3,000</td></tr>' +
+      '<tr style="background:#160010;"><td>Implied conv. rate</td><td class="warn">6.0%</td></tr>' +
+      '</tbody>' +
+      '</table>' +
+      '</div>',
+    initRows: [
+      { c: ['12 Mar', '1,847', '54',  '100234'],   k: ['','','',''] },
+      { c: ['12 Mar', '1,847', '54',  'FG45YHJ4'], k: ['','','',''] },
+      { c: ['13 Mar', '2,103', '62',  '100891'],   k: ['','','',''] },
+      { c: ['13 Mar', '2,103', '62',  'KP23MNQ7'], k: ['','','',''] },
+      { c: ['14 Mar', '1,956', '48',  '102019'],   k: ['','','',''] },
+      { c: ['14 Mar', '1,956', '48',  'BT78QRX2'], k: ['','','',''] },
+      { c: ['15 Mar', '2,241', '71',  '102774'],   k: ['','','',''] },
+      { c: ['15 Mar', '2,241', '71',  'MN91LPW5'], k: ['','','',''] }
+    ],
+    tableNote: 'Sample rows from export — 3,000 transaction IDs total',
+    revealable: [
+      { key: 'analytics', label: 'Analytics platform records',
+        customReveal:
+          '<div class="pbox table-wrap new-row" style="margin-top:10px;">' +
+          '<div class="c1"></div><div class="c2"></div>' +
+          '<table>' +
+          '<thead><tr>' +
+          '<th style="text-align:left;">Analytics Platform</th>' +
+          '<th>Value</th>' +
+          '</tr></thead>' +
+          '<tbody>' +
+          '<tr style="background:#160010;"><td>Sessions</td><td>50,000</td></tr>' +
+          '<tr style="background:#0a0008;"><td>Orders (recorded)</td><td class="up">1,500</td></tr>' +
+          '<tr style="background:#160010;"><td>Conversion rate</td><td class="up">3.0%</td></tr>' +
+          '</tbody>' +
+          '</table>' +
+          '<div style="font-size:6px;color:var(--neg);padding:7px 10px;border-top:1px solid var(--border);font-family:var(--font);">' +
+          '&#9660; Analytics shows 1,500 orders — export shows 3,000. Something is very wrong.' +
+          '</div></div>'
+      }
+    ],
+    question: "You have 3,000 transaction IDs in the export. Is this data clean to analyse?",
+    answers: [
+      { lbl: "YES  3,000 transactions, let's get started",    type:'wrong' },
+      { lbl: "NO   Something in these records looks wrong",   type:'correct', needsData:false },
+      { lbl: "REQUEST MORE DATA  Check the analytics figures", type:'request' }
+    ],
+    wrongMsg:   "Half those transaction IDs use a completely different format — they belong to a different product entirely. Analysing all 3,000 as one dataset gives you a false 6% conversion rate. The real rate is 3.0%.",
+    successMsg: "Sharp eyes! You spotted the inconsistency before the export poisoned your analysis.",
+    lesson: [
+      "Transaction IDs 100234, 100891... are numeric — these belong to your product",
+      "IDs like FG45YHJ4, KP23MNQ7 are alphanumeric — a completely different product's transactions",
+      "The export accidentally joined two product tables — 50% of the records should not be here",
+      "Analytics shows 1,500 real orders but the export has 3,000 IDs — this would double your apparent orders",
+      "Always validate ID format consistency and cross-check counts against your analytics platform"
+    ]
+  },
+  {
+    id: 3,
+    chapter: 'CHAPTER IV',
+    title: 'THE GOLDEN TOURNAMENT',
+    difficulty: 'JOURNEYMAN', diffClass: 'd-adp', enemy: '💸', xp: 250,
+    dialogs: [
+      "Three demons felled! But the darkness grows more cunning with every defeat.",
+      "The Golden Tournament offers a prize that looks magnificent — but hides a poison.",
+      "An A/B test has concluded. The variant is performing well on a key metric.",
+      "The team is ready to ship. But before you decide — what does your primary metric say?"
+    ],
+    headers: ['Metric', 'Exp. A (Control)', 'Exp. B (Variant)', 'Uplift'],
+    initRows: [
+      { c: ['Avg. Order Value', '£60', '£75', '+25%'], k: ['','','','up'] }
+    ],
+    revealable: [
+      { key: 'orders',  label: 'Orders (primary metric)',
+        row: { c: ['Orders', '1,000', '700', '-30%'], k: ['','','','dn'] } },
+      { key: 'revenue', label: 'Total revenue',
+        row: { c: ['Total Revenue', '£60,000', '£52,500', '-12.5%'], k: ['','','','dn'] } }
+    ],
+    question: "Experience B shows a +25% uplift in Average Order Value. Ship it?",
+    answers: [
+      { lbl: "YES  AOV is up 25%, that is a win!",
+        type: 'wrong',
+        wrongMsg: "Higher AOV can mean fewer people completing purchase — and that is exactly what happened. Orders are down 30%, revenue is down 12.5%. A secondary metric winning while the primary metric loses means the test failed." },
+      { lbl: "NO   I need to check the primary metric first", type:'correct', needsData:true },
+      { lbl: "REQUEST PRIMARY METRIC  Check orders",          type:'request' }
+    ],
+    nudgeMsg:   "Right instinct — but request the primary metric first to make your case.",
+    successMsg: "You knew to check the primary metric before declaring victory.",
+    lesson: [
+      "Experience B raised AOV by getting fewer people to complete a purchase — not a win",
+      "Orders fell 30%: the variant hurt conversion rate, destroying any benefit from higher AOV",
+      "Total revenue dropped 12.5% — the apparent winner is a significant loser",
+      "Always define your PRIMARY metric before running a test and judge solely on that",
+      "Secondary metrics (AOV, pages per session, time on site) are diagnostic — not verdict metrics"
+    ]
+  },
+  {
+    id: 4,
+    chapter: 'CHAPTER V',
+    title: 'THE HERALD\'S REPORT',
+    difficulty: 'APPRENTICE', diffClass: 'd-app', enemy: '📊', xp: 200,
+    dialogs: [
+      "Four demons defeated! But they lurk not only in spreadsheets — they haunt boardrooms too.",
+      "The Herald has been tasked with presenting the kingdom's revenue data to the council.",
+      "Your marketing team has revenue data across 7 traffic sources for the board presentation.",
+      "They have chosen a chart type. You must advise whether it is the right one."
+    ],
+    headers: ['Traffic Source', 'Revenue', 'Share of Total'],
+    initRows: [
+      { c: ['Organic Search', '£12,400', '24%'], k: ['','',''] },
+      { c: ['Paid Search',    '£9,800',  '19%'], k: ['','',''] },
+      { c: ['Email',          '£8,200',  '16%'], k: ['','',''] },
+      { c: ['Direct',         '£7,600',  '15%'], k: ['','',''] },
+      { c: ['Social Media',   '£5,400',  '10%'], k: ['','',''] },
+      { c: ['Affiliates',     '£4,900',  '9%'],  k: ['','',''] },
+      { c: ['Display Ads',    '£3,900',  '7%'],  k: ['','',''] }
+    ],
+    revealable: [],
+    question: "The team wants to present this breakdown in a pie chart. What do you advise?",
+    answers: [
+      { lbl: "USE IT  Pie charts show percentages clearly",
+        type: 'wrong',
+        wrongMsg: "A 7-slice pie chart makes it nearly impossible to compare similar-sized segments. When shares are 7%, 9%, 10%, 15%... the human eye cannot accurately judge which angle is larger. Pie charts work for 2-4 clearly different proportions — not 7 similar ones." },
+      { lbl: "USE A BAR CHART  Easier to compare 7 categories", type:'correct', needsData:false },
+      { lbl: "USE A LINE CHART  Shows the trend across sources",
+        type: 'wrong',
+        wrongMsg: "Line charts imply a continuous sequence or trend over time. Traffic sources are discrete, unordered categories — there is no meaningful value 'between Paid Search and Email'. Using a line chart here suggests a relationship between the sources that does not exist." }
+    ],
+    successMsg: "Correct! Seven similar-sized categories demands a bar chart, not a pie.",
+    lesson: [
+      "Pie charts work for 2-4 categories with clearly different proportions only",
+      "With 7 slices at 7-24%, the board cannot meaningfully compare segments — angles are too similar",
+      "The human eye judges length (bar chart) far more accurately than angle (pie chart)",
+      "Line charts are for continuous data or time series — never for unordered categories",
+      "Rule: more than 4 categories, or similar-sized segments = use a bar chart"
+    ]
+  },
+  {
+    id: 5,
+    chapter: 'CHAPTER VI',
+    title: 'THE TWIN SCHOLARS',
+    difficulty: 'ADEPT', diffClass: 'd-adp', enemy: '🔢', xp: 300,
+    dialogs: [
+      "Five great victories! The realm shakes at your analytical might.",
+      "But now two scholars stand before you, each claiming to have calculated the same figure.",
+      "A supplier invoice must be settled. The amount is contractually binding — precision matters.",
+      "Both scholars were given the same records. Their answers are close — but not the same."
+    ],
+    headers: ['', 'Scholar A', 'Scholar B'],
+    initRows: [
+      { c: ['Invoice Total', '£400,850.78', '£401,968.00'], k: ['', 'up', 'warn'] }
+    ],
+    tableNote: 'Both scholars used the same source records',
+    revealable: [
+      {
+        key: 'inputs',
+        label: 'See the figures each scholar used',
+        customReveal:
+          '<div class="pbox table-wrap new-row" style="margin-top:10px;">' +
+          '<div class="c1"></div><div class="c2"></div>' +
+          '<table>' +
+          '<thead><tr>' +
+          '<th style="text-align:left;">Input</th>' +
+          '<th>Scholar A</th>' +
+          '<th>Scholar B</th>' +
+          '</tr></thead>' +
+          '<tbody>' +
+          '<tr style="background:#160010;"><td>Service calls</td><td>4,847</td><td class="warn">4,850</td></tr>' +
+          '<tr style="background:#0a0008;"><td>Rate per call</td><td>£73.84</td><td class="warn">£74.00</td></tr>' +
+          '<tr style="background:#160010;"><td>Admin multiplier</td><td>1.12</td><td>1.12</td></tr>' +
+          '</tbody>' +
+          '</table>' +
+          '</div>'
+      },
+      {
+        key: 'working',
+        label: 'See the calculation steps',
+        customReveal:
+          '<div class="pbox table-wrap new-row" style="margin-top:10px;">' +
+          '<div class="c1"></div><div class="c2"></div>' +
+          '<table>' +
+          '<thead><tr>' +
+          '<th style="text-align:left;">Step</th>' +
+          '<th>Scholar A</th>' +
+          '<th>Scholar B</th>' +
+          '</tr></thead>' +
+          '<tbody>' +
+          '<tr style="background:#160010;"><td>calls x rate</td><td>£357,902.48</td><td class="warn">£358,900.00</td></tr>' +
+          '<tr style="background:#0a0008;"><td>x admin (1.12)</td><td class="up">£400,850.78</td><td class="dn">£401,968.00</td></tr>' +
+          '</tbody>' +
+          '</table>' +
+          '<div style="font-size:6px;color:var(--neg);padding:7px 10px;border-top:1px solid var(--border);font-family:var(--font);">' +
+          '&#9660; Scholar B is £1,117.22 over — small rounding at each step compounded through the multiplication' +
+          '</div></div>'
+      }
+    ],
+    question: "The invoice is contractually binding. Which figure is correct?",
+    answers: [
+      { lbl: "SCHOLAR B  £401,968 — both are close enough",
+        type: 'wrong',
+        wrongMsg: "Scholar B rounded the service calls (4,847 to 4,850) and the rate (£73.84 to £74.00). Each rounding seemed trivial — but they are multiplied together and then multiplied again by the admin overhead. Small input errors do not add — they compound through every step of the calculation." },
+      { lbl: "SCHOLAR A  £400,850.78 — the precise figure", type:'correct', needsData:true },
+      { lbl: "SEE THEIR WORKINGS  Request the source figures", type:'request' }
+    ],
+    nudgeMsg:   "Right instinct — but pull up their source figures. You need to show exactly where the difference came from.",
+    successMsg: "Correct. You understood that rounded inputs multiply their errors — they do not simply add.",
+    lesson: [
+      "Scholar B rounded two inputs: calls (4,847 → 4,850) and rate (£73.84 → £74.00)",
+      "Individually harmless. But they are multiplied together, then multiplied again by 1.12",
+      "The rate rounding alone (£73.84 → £74) overstated each call by 0.2% — times 4,850 calls",
+      "Result: £1,117.22 difference on a contractually binding invoice",
+      "For any calculation where precision is required: use exact figures at every step, never round inputs"
+    ]
+  },
+  {
+    id: 6,
+    chapter: 'CHAPTER VII — FINAL BATTLE',
+    title: 'THE ORACLE OF THORNWICK',
+    difficulty: 'MASTER', diffClass: 'd-mst', enemy: '💀', xp: 350,
+    dialogs: [
+      "APPRENTICE... you have grown more powerful than any analyst in living memory.",
+      "One last darkness remains — the most deceptive demon of all!",
+      "A homepage personalisation test returned extraordinary results after just 3 days.",
+      "The board demands IMMEDIATE deployment. +35% uplift glows on every dashboard. Investigate..."
+    ],
+    headers: ['Metric', 'Exp. A (Control)', 'Exp. B (Variant)', 'Status'],
+    initRows: [
+      { c:['Test Duration', '—',    '3 days', 'very short'], k:['','','','warn'] },
+      { c:['Conv. Rate',    '1.2%', '1.6%',   '+35%'],       k:['','','','up']   },
+      { c:['p-value',       '—',    '0.04',   '~sig.'],      k:['','','','warn'] }
+    ],
+    revealable: [
+      { key:'traffic',     label:'Total traffic in test',
+        row: { c:['Visitors (total)', '162', '—', 'n=162 total'], k:['','','','dn'] } },
+      { key:'conversions', label:'Actual conversions (raw count)',
+        row: { c:['Actual Conversions', '~1', '~1.3', 'rounding artifact'], k:['','','','dn'] } }
+    ],
+    question: "+35% conv. uplift, p=0.04, after 3 days. Deploy the personalisation?",
+    answers: [
+      { lbl: "YES  Deploy it! +35% is massive!",       type:'wrong' },
+      { lbl: "NO   3 days is nowhere near enough",      type:'correct', needsData:false },
+      { lbl: "INVESTIGATE  Show me the raw numbers",   type:'request' }
+    ],
+    wrongMsg:   "83 visitors x 1.2% = ~1 actual conversion. 79 visitors x 1.6% = ~1.3 conversions. The entire +35% uplift is a rounding artifact from single-digit real events. This result means nothing.",
+    successMsg: "THE REALM IS SAVED! YOU ARE THE DATA CHAMPION OF THE ENTIRE KINGDOM!",
+    lesson: [
+      "83 visitors x 1.2% conversion rate = approximately 1 actual conversion in control",
+      "79 visitors x 1.6% conversion rate = approximately 1.3 conversions in variant",
+      "The entire +35% uplift is a rounding artifact — this is effectively 1 conversion vs 1 conversion",
+      "p=0.04 with only 162 total visitors is almost certainly a false positive",
+      "At 1.2% baseline with 80% power you need 2,000+ visitors per variant minimum"
+    ]
+  }
+];
+
+var TOTAL_XP = CHALLENGES.reduce(function(s,c){ return s+c.xp; }, 0);
+
+var st = { ci:0, di:0, phase:'dialog', revealed:{}, xp:0, lives:3, wrongMsg:'' };
+var twTimer = null;
+
+/* ── UTILS ── */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+}
+function gc() { return CHALLENGES[st.ci]; }
+function setContent(html) {
+  var el = document.getElementById('game-content');
+  el.innerHTML = html;
+  void el.offsetWidth;
+  el.classList.add('fade-in');
+  setTimeout(function(){ el.classList.remove('fade-in'); }, 420);
+}
+function updateHUD() {
+  document.getElementById('xp-fill').style.width = Math.min(100,(st.xp/TOTAL_XP)*100)+'%';
+  document.getElementById('xp-label').textContent = st.xp+' / '+TOTAL_XP;
+  var hearts = '';
+  for(var i=0;i<3;i++) hearts += '<span class="heart'+(i<st.lives?'':' dead')+'">&#9670;</span>';
+  document.getElementById('lives-row').innerHTML = hearts;
+  document.getElementById('ch-indicator').textContent = 'CH '+(st.ci+1)+'/'+CHALLENGES.length;
+}
+function doShake() {
+  var el = document.getElementById('game-content');
+  el.classList.add('shake');
+  setTimeout(function(){ el.classList.remove('shake'); }, 500);
+}
+function typewrite(elId, text, speed) {
+  if(twTimer){ clearInterval(twTimer); twTimer=null; }
+  var el = document.getElementById(elId);
+  if(!el) return;
+  el.textContent = '';
+  var i = 0;
+  twTimer = setInterval(function(){
+    var el2 = document.getElementById(elId);
+    if(!el2){ clearInterval(twTimer); twTimer=null; return; }
+    if(i < text.length){ el2.textContent += text[i++]; }
+    else { clearInterval(twTimer); twTimer=null; }
+  }, speed||25);
+}
+function stopTypewrite(text) {
+  if(twTimer){ clearInterval(twTimer); twTimer=null; }
+  var el = document.getElementById('dlg-text');
+  if(el) el.textContent = text;
+}
+
+/* ── BUILD TABLE ── */
+function buildTable(ch, revealed) {
+  var outer = '';
+
+  // Optional summary table shown ABOVE the main table
+  if(ch.extraInitHtml) outer += ch.extraInitHtml;
+
+  var rows = ch.initRows.slice();
+  // Only add standard row-based reveals to the main table
+  ch.revealable.forEach(function(r){
+    if(revealed[r.key] && r.row) rows.push({ c:r.row.c, k:r.row.k, isNew:true });
+  });
+
+  var html = '<div class="pbox table-wrap"><div class="c1"></div><div class="c2"></div><table>';
+  html += '<thead><tr>';
+  ch.headers.forEach(function(h,i){ html += '<th style="'+(i===0?'text-align:left':'')+'">'+h+'</th>'; });
+  html += '</tr></thead><tbody>';
+
+  rows.forEach(function(row,ri){
+    html += '<tr class="'+(row.isNew?'new-row':'')+'" style="'+(ri%2?'background:#0a0008;':'background:#160010;')+'">';
+    row.c.forEach(function(cell,ci){
+      var cls = (row.k && row.k[ci]) ? row.k[ci] : '';
+      html += '<td class="'+cls+'">'+cell+'</td>';
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+
+  // Optional note line below table (e.g. "showing 10 of 3,000")
+  if(ch.tableNote) {
+    html += '<div style="font-size:6px;color:var(--dim);padding:6px 10px;border-top:1px solid var(--border);font-family:var(--font);">'+ch.tableNote+'</div>';
+  }
+
+  html += '<div class="table-legend">';
+  html += '<div class="tl-item"><div class="tl-dot" style="background:#4db8ff;"></div><span style="color:#4db8ff;">&#9650; POSITIVE</span></div>';
+  html += '<div class="tl-item"><div class="tl-dot" style="background:#ff6630;"></div><span style="color:#ff6630;">&#9660; NEGATIVE</span></div>';
+  html += '<div class="tl-item"><div class="tl-dot" style="background:#ffcc00;"></div><span style="color:#ffcc00;">! CAUTION</span></div>';
+  html += '<div class="tl-item"><div class="tl-dot" style="background:#bb88ff;"></div><span style="color:#bb88ff;">&#10003; SIGNIFICANT</span></div>';
+  html += '</div></div>';
+
+  // Custom reveal blocks — separate tables shown below the main one
+  ch.revealable.forEach(function(r){
+    if(revealed[r.key] && r.customReveal) html += r.customReveal;
+  });
+
+  return outer + html;
+}
+
+/* ── BUILD HEADER ── */
+function buildHeader(ch) {
+  return '<div class="ch-header">' +
+    '<div class="ch-num">'+ch.chapter+'</div>' +
+    '<div class="ch-name">'+ch.title+'</div>' +
+    '<div class="ch-diff"><span class="diff-badge '+ch.diffClass+'">'+ch.difficulty+'</span></div>' +
+    '</div>';
+}
+
+/* ── RENDER FUNCTIONS ── */
+function renderDialog() {
+  var ch = gc(), text = ch.dialogs[st.di], isLast = st.di >= ch.dialogs.length-1;
+  setContent(
+    buildHeader(ch) +
+    '<div class="pbox dialog-wrap" data-action="dialog"><div class="c1"></div><div class="c2"></div>' +
+      '<div class="dialog-inner">' +
+        '<div class="portrait-frame">&#129497;</div>' +
+        '<div class="dialog-body">' +
+          '<div class="speaker">ANALYTICUS THE WISE:</div>' +
+          '<div class="dialog-text" id="dlg-text"></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="dialog-hint">'+(isLast?'&#9660; CLICK TO EXAMINE THE DATA':'&#9660; CLICK TO CONTINUE')+'</div>' +
+    '</div>' +
+    '<div class="dialog-progress">['+(st.di+1)+' / '+ch.dialogs.length+']</div>'
+  );
+  setTimeout(function(){ typewrite('dlg-text', text, 24); }, 60);
+}
+
+function renderQuestion(phase) {
+  var ch = gc(), isNudge = (phase === 'nudge');
+  var qText = isNudge ? (ch.nudgeMsg || "Your instinct is right — but gather data to back your case first!") : ch.question;
+
+  var ansHTML = '';
+  if(isNudge) {
+    ansHTML = '<button class="btn btn-p" data-action="dismiss">&#8617;  LET ME REQUEST DATA FIRST</button>';
+  } else {
+    ansHTML = '<div class="ans-grid">';
+    ch.answers.forEach(function(a, i){
+      var cls = a.type==='wrong' ? 'btn-o' : a.type==='request' ? 'btn-p' : 'btn-b';
+      ansHTML += '<button class="btn '+cls+'" data-action="answer" data-val="'+i+'">'+a.lbl+'</button>';
+    });
+    ansHTML += '</div>';
+  }
+
+  setContent(
+    buildHeader(ch) +
+    buildTable(ch, st.revealed) +
+    '<div class="pbox q-panel'+(isNudge?' p':'')+'"><div class="c1"></div><div class="c2"></div>' +
+      '<div class="q-wizard">' +
+        '<div class="q-wiz-icon">&#129497;</div>' +
+        '<div><div class="q-speaker">ANALYTICUS:</div><div class="q-text">'+qText+'</div></div>' +
+      '</div>' +
+      ansHTML +
+    '</div>'
+  );
+}
+
+function renderDataPanel() {
+  var ch = gc();
+  var btnHTML = '';
+  ch.revealable.forEach(function(r){
+    var done = !!st.revealed[r.key];
+    btnHTML += '<button class="btn '+(done?'btn-d':'btn-p')+'" data-action="reveal" data-val="'+r.key+'"'+(done?' disabled':'')+'>'+
+      (done ? '&#10003; REVEALED: ' : '') + r.label + '</button>';
+  });
+
+  setContent(
+    buildHeader(ch) +
+    buildTable(ch, st.revealed) +
+    '<div class="pbox p dr-panel"><div class="c1"></div><div class="c2"></div>' +
+      '<div class="dr-title">&#128220;  REQUEST ADDITIONAL DATA:</div>' +
+      '<div class="dr-btns">'+btnHTML+'</div>' +
+      '<hr class="dr-sep">' +
+      '<button class="btn btn-b" data-action="done">&#10003;  DONE  —  MAKE MY DECISION</button>' +
+    '</div>'
+  );
+}
+
+function renderWrong() {
+  var ch = gc();
+  setContent(
+    buildHeader(ch) +
+    '<div class="pbox o wrong-panel"><div class="c1"></div><div class="c2"></div>' +
+      '<div class="wrong-title">&#10007;  NOT QUITE</div>' +
+      '<div class="wrong-body"><div class="wrong-icon">&#129497;</div>' +
+        '<div class="wrong-msg">'+st.wrongMsg+'</div>' +
+      '</div>' +
+      '<div style="display:flex;flex-direction:column;gap:8px;">' +
+        '<button class="btn btn-o" data-action="retry">&#8617;  TRY AGAIN</button>' +
+        '<button class="btn btn-b" data-action="skiplesson">&#128218;  SKIP TO LESSON</button>' +
+      '</div>' +
+    '</div>'
+  );
+}
+
+function renderSuccess() {
+  var ch = gc();
+  setContent(
+    buildHeader(ch) +
+    '<div class="pbox b success-panel"><div class="c1"></div><div class="c2"></div>' +
+      '<div class="success-title">&#9733;  CORRECT!  &#9733;</div>' +
+      '<div class="success-body"><div class="success-icon">&#129497;</div>' +
+        '<div class="success-msg">'+ch.successMsg+'</div>' +
+      '</div>' +
+      '<div class="xp-badge">+'+ch.xp+' XP GAINED!</div>' +
+      '<button class="btn btn-b" data-action="lesson">&#128218;  STUDY THE LESSON</button>' +
+    '</div>'
+  );
+}
+
+function renderLesson() {
+  var ch = gc(), isLast = st.ci >= CHALLENGES.length-1;
+  var nextLabel = isLast ? '&#9654;  COMPLETE THE QUEST!' : '&#9654;  NEXT: '+CHALLENGES[st.ci+1].title;
+
+  var items = '';
+  ch.lesson.forEach(function(l){
+    items += '<div class="lesson-item"><span class="lesson-dot">&#9658;</span><span class="lesson-txt">'+l+'</span></div>';
+  });
+
+  setContent(
+    buildHeader(ch) +
+    '<div class="pbox lesson-panel"><div class="c1"></div><div class="c2"></div>' +
+      '<div class="lesson-title">&#128218;  LESSON:  '+ch.title+'</div>' +
+      items +
+    '</div>' +
+    '<button class="btn btn-p" data-action="next" style="font-size:7px;">'+nextLabel+'</button>'
+  );
+}
+
+/* ── GAME ACTIONS ── */
+function gameStart() {
+  st.ci=0; st.di=0; st.phase='dialog';
+  st.revealed={}; st.xp=0; st.lives=3; st.wrongMsg='';
+  updateHUD();
+  showScreen('game-screen');
+  renderDialog();
+}
+
+function gameAdvanceDialog() {
+  var ch = gc();
+  if(twTimer){ stopTypewrite(ch.dialogs[st.di]); return; }
+  if(st.di < ch.dialogs.length-1){ st.di++; renderDialog(); }
+  else { st.phase='question'; renderQuestion('question'); }
+}
+
+function gameAnswer(index) {
+  var ch = gc(), ans = ch.answers[index];
+  if(ans.type === 'request'){ st.phase='datapanel'; renderDataPanel(); return; }
+  if(ans.type === 'wrong'){
+    doShake();
+    st.wrongMsg = ans.wrongMsg || ch.wrongMsg;
+    st.phase = 'wrong';
+    renderWrong();
+    return;
+  }
+  if(ans.type === 'correct'){
+    if(ans.needsData && Object.keys(st.revealed).length === 0){
+      st.phase='nudge'; renderQuestion('nudge'); return;
+    }
+    st.xp += ch.xp;
+    updateHUD();
+    st.phase='success';
+    renderSuccess();
+  }
+}
+
+function gameReveal(key) {
+  st.revealed[key] = true;
+  renderDataPanel();
+}
+
+function gameDone()    { st.phase='question'; renderQuestion('question'); }
+function gameDismiss() { st.phase='question'; renderQuestion('question'); }
+function gameRetry()   { st.revealed={}; st.phase='question'; renderQuestion('question'); }
+function gameLesson()  { renderLesson(); }
+
+function gameNext() {
+  if(st.ci >= CHALLENGES.length-1){
+    document.getElementById('final-xp-val').textContent = st.xp;
+    showScreen('victory-screen');
+    return;
+  }
+  st.ci++; st.di=0; st.phase='dialog'; st.revealed={}; st.wrongMsg='';
+  renderDialog();
+}
+
+function gameReset() { showScreen('title-screen'); }
+
+/* ── EVENT DELEGATION — game content area ── */
+document.getElementById('game-content').addEventListener('click', function(e) {
+  var el = e.target.closest('[data-action]');
+  if(!el || el.disabled) return;
+  var action = el.getAttribute('data-action');
+  var val    = el.getAttribute('data-val');
+  if(action === 'dialog')     gameAdvanceDialog();
+  if(action === 'answer')     gameAnswer(parseInt(val, 10));
+  if(action === 'reveal')     gameReveal(val);
+  if(action === 'done')       gameDone();
+  if(action === 'dismiss')    gameDismiss();
+  if(action === 'retry')      gameRetry();
+  if(action === 'lesson')     gameLesson();
+  if(action === 'skiplesson') gameLesson();
+  if(action === 'next')       gameNext();
+});
+
+/* ── STATIC BUTTON WIRING ── */
+document.getElementById('start-btn').addEventListener('click', gameStart);
+document.getElementById('play-again-btn').addEventListener('click', gameReset);
+document.getElementById('retry-gameover-btn').addEventListener('click', gameReset);
+
+/* ── INIT TITLE LIST ── */
+var listEl = document.getElementById('title-quest-list');
+CHALLENGES.forEach(function(ch, i){
+  var div = document.createElement('div');
+  div.className = 'quest-item';
+  div.innerHTML =
+    '<span class="qi-icon">'+ch.enemy+'</span>' +
+    '<span class="qi-ch">CH.'+(i+1)+'</span>' +
+    '<span class="qi-name">'+ch.title+'</span>' +
+    '<span class="qi-diff diff-badge '+ch.diffClass+'">'+ch.difficulty+'</span>';
+  listEl.appendChild(div);
+});
+</script>
+</body>
+</html>
