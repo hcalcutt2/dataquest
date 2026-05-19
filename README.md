@@ -13,4 +13,8 @@ Open index.html in any browser, or play online at [your GitHub Pages URL once li
 
 - Reading beyond headline metrics
 - Segmenting results before making decisions
-- Spotting data quali
+- Spotting data quality issues in exports
+- Identifying false winners using primary metrics
+- Choosing the right chart type
+- Error propagation through rounding
+- Recognising underpowered test results
