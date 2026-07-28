@@ -15,13 +15,13 @@
 :root {
   --bg:      #0d0d1a;
   --panel:   #151528;
-  --border:  #38356a;
-  --brite:   #6560a8;
-  --text:    #c4c0dc;
-  --dim:     #4a4870;
-  --bright:  #e8e4f8;
-  --white:   #f5f3ff;
-  --hot:     #9d8fcc;   /* muted purple — titles */
+  --border:  #4a4680;
+  --brite:   #7a74c0;
+  --text:    #ddd9f0;
+  --dim:     #a8a4ce;   /* secondary text — kept readable on dark navy */
+  --bright:  #f0ecff;
+  --white:   #faf8ff;
+  --hot:     #c4b8ef;   /* titles / accents */
   --pos:     #60b4ff;   /* positive  → blue   */
   --neg:     #ff9048;   /* negative  → orange */
   --warn:    #ffd060;   /* caution   → yellow */
@@ -42,11 +42,12 @@ body {
 }
 body::after {
   content:''; position:fixed; inset:0; pointer-events:none; z-index:9998;
-  background:repeating-linear-gradient(to bottom,transparent 0px,transparent 2px,rgba(0,0,0,0.05) 2px,rgba(0,0,0,0.05) 3px);
+  background:repeating-linear-gradient(to bottom,transparent 0px,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 3px);
 }
 body::before {
   content:''; position:fixed; inset:0; pointer-events:none; z-index:9997;
-  background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.5) 100%);
+  /* Light vignette only — heavy darkening made lower text unreadable */
+  background:radial-gradient(ellipse at center,transparent 72%,rgba(0,0,0,0.22) 100%);
 }
 ::-webkit-scrollbar { width:4px; }
 ::-webkit-scrollbar-track { background:var(--bg); }
@@ -265,9 +266,9 @@ body::before {
 .quest-item   { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--border); font-size:9px; }
 .quest-item:last-child { border-bottom:none; }
 .qi-icon { font-size:18px; flex-shrink:0; width:28px; text-align:center; }
-.qi-ch   { color:var(--dim); flex-shrink:0; }
+.qi-ch   { color:var(--text); flex-shrink:0; }
 .qi-name { color:var(--white); flex:1; font-family:var(--font-body); font-size:18px; }
-.title-footer { font-size:9px; color:var(--dim); letter-spacing:1px; }
+.title-footer { font-size:9px; color:var(--text); letter-spacing:1px; }
 
 /* ── RESOURCES SCREEN ── */
 #resources-screen { align-items:center; justify-content:center; padding:24px 16px; background:var(--bg); }
@@ -1316,7 +1317,7 @@ function renderTitleQuestList(){
   var listEl=document.getElementById('title-quest-list');
   listEl.innerHTML='';
   var shortNote=document.createElement('div');
-  shortNote.style.cssText='font-family:var(--font-body);font-size:16px;color:var(--dim);margin-bottom:8px;line-height:1.4;';
+  shortNote.style.cssText='font-family:var(--font-body);font-size:16px;color:var(--text);margin-bottom:8px;line-height:1.4;';
   shortNote.textContent='Short quest plays Chapters I–III, then the epilogue. Full quest plays all nine.';
   listEl.appendChild(shortNote);
   ALL_CHALLENGES.forEach(function(ch,i){
