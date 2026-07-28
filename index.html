@@ -313,14 +313,21 @@ body::before {
     </div>
     <div class="pbox title-intro" style="width:100%;"><div class="c1"></div><div class="c2"></div>
       <p>The realm of analytics is under siege. Data Demons corrupt decisions across the kingdom.</p>
-      <p>Nine challenges stand between you and the truth. Can you defeat them all?</p>
+      <p>Choose your path — a short quest, or the full legend.</p>
     </div>
     <div class="pbox quest-list" style="width:100%;"><div class="c1"></div><div class="c2"></div>
       <div id="title-quest-list"></div>
     </div>
-    <button class="btn btn-p btn-big" id="start-btn" style="width:100%;border:2px solid #5a55aa;background:#0e0e20;">
-      &#9658;&nbsp;&nbsp;PRESS START
-    </button>
+    <div class="path-choice" style="width:100%;display:flex;flex-direction:column;gap:10px;">
+      <button class="btn btn-b btn-big" id="start-short-btn" style="width:100%;">
+        &#9658;&nbsp;&nbsp;SHORT QUEST
+        <span style="display:block;font-family:var(--font-body);font-size:18px;font-weight:normal;margin-top:8px;letter-spacing:0;opacity:.85;">3 challenges + epilogue</span>
+      </button>
+      <button class="btn btn-p btn-big" id="start-full-btn" style="width:100%;border:2px solid #5a55aa;background:#0e0e20;">
+        &#9658;&nbsp;&nbsp;FULL QUEST
+        <span style="display:block;font-family:var(--font-body);font-size:18px;font-weight:normal;margin-top:8px;letter-spacing:0;opacity:.85;">9 challenges + epilogue</span>
+      </button>
+    </div>
     <div class="title-footer">AN INTERACTIVE DATA ANALYSIS TRAINING TOOL</div>
   </div>
 </div>
@@ -368,7 +375,7 @@ body::before {
 /* ══════════════════════════════════════
    CHALLENGE DATA
    ══════════════════════════════════════ */
-var CHALLENGES = [
+var ALL_CHALLENGES = [
   {
     id:0, chapter:'CHAPTER I', title:'THE MERCHANT OF KETH',
     difficulty:'APPRENTICE', diffClass:'d-app', enemy:'💰', xp:150,
@@ -776,10 +783,21 @@ var CHALLENGES = [
   }
 ];
 
+/* Short path = first three chapters + epilogue; full path = all nine + epilogue */
+var SHORT_COUNT = 3;
+var CHALLENGES = ALL_CHALLENGES.slice();
 var TOTAL_XP = CHALLENGES.reduce(function(s,c){return s+c.xp;},0);
 var st = {ci:0,di:0,phase:'dialog',revealed:{},xp:0,wrongMsg:''};
 var twTimer = null;
 var hPhase = 'inbox';
+
+function setQuestMode(mode){
+  CHALLENGES = mode === 'short'
+    ? ALL_CHALLENGES.slice(0, SHORT_COUNT)
+    : ALL_CHALLENGES.slice();
+  TOTAL_XP = CHALLENGES.reduce(function(s,c){return s+c.xp;},0);
+  renderTitleQuestList();
+}
 
 /* ── UTILS ── */
 function showScreen(id){
@@ -1190,7 +1208,8 @@ function renderHorrorDream(){
 }
 
 /* ── GAME ACTIONS ── */
-function gameStart(){
+function gameStart(mode){
+  setQuestMode(mode || 'full');
   st.ci=0; st.di=0; st.phase='dialog'; st.revealed={}; st.xp=0; st.wrongMsg='';
   updateHUD(); showScreen('game-screen'); renderDialog();
 }
@@ -1255,30 +1274,33 @@ document.getElementById('game-content').addEventListener('click',function(e){
 });
 
 /* ── STATIC BUTTONS ── */
-document.getElementById('start-btn').addEventListener('click',gameStart);
+document.getElementById('start-short-btn').addEventListener('click',function(){ gameStart('short'); });
+document.getElementById('start-full-btn').addEventListener('click',function(){ gameStart('full'); });
 document.getElementById('play-again-btn').addEventListener('click',gameReset);
 
-/* ── DEV MODE ── */
+/* ── DEV MODE (backtick ` — avoids Chrome Cmd/Ctrl+D bookmark) ── */
 document.addEventListener('keydown', function(e){
-  if(e.key === 'd' || e.key === 'D'){
-    var existing = document.getElementById('dev-panel');
-    if(existing){ existing.remove(); return; }
-    var panel = document.createElement('div');
-    panel.id = 'dev-panel';
-    panel.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:99999;background:#0d0d1a;border:2px solid #ffd060;padding:14px;font-family:"Press Start 2P",monospace;font-size:9px;color:#ffd060;min-width:220px;box-shadow:0 0 20px rgba(255,208,96,0.4);';
-    var html = '<div style="margin-bottom:10px;letter-spacing:1px;">DEV MODE</div>';
-    CHALLENGES.forEach(function(ch,i){
-      html += '<button onclick="devSkip('+i+')" style="display:block;width:100%;font-family:\'Press Start 2P\',monospace;font-size:7px;background:#0d0d1a;color:#ffd060;border:1px solid #6b4800;padding:6px 8px;margin-bottom:4px;cursor:pointer;text-align:left;">CH.'+(i+1)+' — '+ch.title+'</button>';
-    });
-    html += '<button onclick="devEpilogue()" style="display:block;width:100%;font-family:\'Press Start 2P\',monospace;font-size:7px;background:#1a0808;color:#ff8888;border:1px solid #882222;padding:6px 8px;margin-bottom:4px;cursor:pointer;text-align:left;">EPILOGUE</button>';
-    html += '<button onclick="devResources()" style="display:block;width:100%;font-family:\'Press Start 2P\',monospace;font-size:7px;background:#020810;color:#60b4ff;border:1px solid #1a4488;padding:6px 8px;cursor:pointer;text-align:left;">RESOURCES</button>';
-    panel.innerHTML = html;
-    document.body.appendChild(panel);
-  }
+  if(e.key !== '`' && e.code !== 'Backquote') return;
+  if(e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  e.preventDefault();
+  var existing = document.getElementById('dev-panel');
+  if(existing){ existing.remove(); return; }
+  var panel = document.createElement('div');
+  panel.id = 'dev-panel';
+  panel.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:99999;background:#0d0d1a;border:2px solid #ffd060;padding:14px;font-family:"Press Start 2P",monospace;font-size:9px;color:#ffd060;min-width:220px;box-shadow:0 0 20px rgba(255,208,96,0.4);';
+  var html = '<div style="margin-bottom:10px;letter-spacing:1px;">DEV MODE <span style="color:#4a4870;font-size:7px;">[`]</span></div>';
+  ALL_CHALLENGES.forEach(function(ch,i){
+    html += '<button onclick="devSkip('+i+')" style="display:block;width:100%;font-family:\'Press Start 2P\',monospace;font-size:7px;background:#0d0d1a;color:#ffd060;border:1px solid #6b4800;padding:6px 8px;margin-bottom:4px;cursor:pointer;text-align:left;">CH.'+(i+1)+' — '+ch.title+'</button>';
+  });
+  html += '<button onclick="devEpilogue()" style="display:block;width:100%;font-family:\'Press Start 2P\',monospace;font-size:7px;background:#1a0808;color:#ff8888;border:1px solid #882222;padding:6px 8px;margin-bottom:4px;cursor:pointer;text-align:left;">EPILOGUE</button>';
+  html += '<button onclick="devResources()" style="display:block;width:100%;font-family:\'Press Start 2P\',monospace;font-size:7px;background:#020810;color:#60b4ff;border:1px solid #1a4488;padding:6px 8px;cursor:pointer;text-align:left;">RESOURCES</button>';
+  panel.innerHTML = html;
+  document.body.appendChild(panel);
 });
 
 function devSkip(ci){
   var p = document.getElementById('dev-panel'); if(p) p.remove();
+  setQuestMode('full');
   st.ci=ci; st.di=0; st.phase='dialog'; st.revealed={}; st.wrongMsg='';
   showScreen('game-screen'); updateHUD(); renderDialog();
 }
@@ -1290,17 +1312,29 @@ function devResources(){
   var p = document.getElementById('dev-panel'); if(p) p.remove();
   showScreen('resources-screen');
 }
-var listEl=document.getElementById('title-quest-list');
-CHALLENGES.forEach(function(ch,i){
-  var div=document.createElement('div');
-  div.className='quest-item';
-  div.innerHTML=
-    '<span class="qi-icon">'+ch.enemy+'</span>'+
-    '<span class="qi-ch">CH.'+(i+1)+'</span>'+
-    '<span class="qi-name">'+ch.title+'</span>'+
-    '<span class="qi-diff diff-badge '+ch.diffClass+'">'+ch.difficulty+'</span>';
-  listEl.appendChild(div);
-});
+function renderTitleQuestList(){
+  var listEl=document.getElementById('title-quest-list');
+  listEl.innerHTML='';
+  var shortNote=document.createElement('div');
+  shortNote.style.cssText='font-family:var(--font-body);font-size:16px;color:var(--dim);margin-bottom:8px;line-height:1.4;';
+  shortNote.textContent='Short quest plays Chapters I–III, then the epilogue. Full quest plays all nine.';
+  listEl.appendChild(shortNote);
+  ALL_CHALLENGES.forEach(function(ch,i){
+    var div=document.createElement('div');
+    div.className='quest-item';
+    var shortTag = i < SHORT_COUNT
+      ? '<span class="qi-diff diff-badge d-app" style="margin-left:4px;">SHORT</span>'
+      : '';
+    div.innerHTML=
+      '<span class="qi-icon">'+ch.enemy+'</span>'+
+      '<span class="qi-ch">CH.'+(i+1)+'</span>'+
+      '<span class="qi-name">'+ch.title+'</span>'+
+      '<span class="qi-diff diff-badge '+ch.diffClass+'">'+ch.difficulty+'</span>'+
+      shortTag;
+    listEl.appendChild(div);
+  });
+}
+renderTitleQuestList();
 </script>
 </body>
 </html>

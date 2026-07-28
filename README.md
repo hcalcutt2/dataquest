@@ -2,13 +2,14 @@
 
 An interactive data analysis training game built as a single HTML file.
 
-Players work through 9 challenges covering common mistakes in CRO and analytics —
-including vanity metrics, data segmentation, corrupted exports, and more.
+Players choose a **short quest** (3 challenges + epilogue) or the **full quest** (9 challenges + epilogue), covering common mistakes in CRO and analytics — including vanity metrics, data segmentation, corrupted exports, and more.
 
 ## Play
 
 Open `index.html` in any browser, or play online at:
 https://hcalcutt2.github.io/dataquest/
+
+Dev panel shortcut: press `` ` `` (backtick), not `D` — so it does not clash with Chrome’s bookmark shortcut.
 
 ## Topics covered
 
